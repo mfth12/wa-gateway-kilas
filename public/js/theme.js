@@ -67,7 +67,7 @@ class ThemeManager {
 
         // Update icon based on theme
         if (theme === this.THEME_DARK) {
-            icon.className = 'fas fa-sun';
+            icon.className = 'fas fa-lightbulb';
             toggleBtn.setAttribute('title', 'Switch to Light Mode');
         } else {
             icon.className = 'fas fa-moon';

@@ -1452,25 +1452,115 @@ input:checked+.toggle-slider:before {
 }
 
 @media (max-width: 768px) {
+
+    /* Layout Adjustments */
     .navbar {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .navbar-brand {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .theme-toggle-btn {
+        position: absolute;
+        top: 1rem;
+        right: 4rem;
+    }
+
+    .nav-actions {
+        width: 100%;
+        justify-content: center;
     }
 
     .main-content {
         padding: 1rem;
     }
 
-    .stats-grid {
-        grid-template-columns: 1fr;
+    /* Grids to Single Column */
+    .devices-grid,
+    .system-grid,
+    .api-tester-grid,
+    .logs-layout,
+    .stats-grid,
+    .webhook-grid {
+        grid-template-columns: 1fr !important;
     }
 
+    /* Tabs Horizontal Scroll */
     .main-tabs {
         overflow-x: auto;
         flex-wrap: nowrap;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth scrolling iOS */
+        gap: 0.5rem;
     }
 
-    .devices-grid {
-        grid-template-columns: 1fr;
+    .main-tab-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    /* Card Adjustments */
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .card-header .btn {
+        width: 100%;
+    }
+
+    /* Device Item Adjustments */
+    .device-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .device-info {
+        width: 100%;
+    }
+
+    .device-actions {
+        width: 100%;
+        margin-top: 1rem;
+        justify-content: flex-end;
+    }
+
+    /* Toast Adjustments */
+    #toast-container {
+        top: auto;
+        bottom: 20px;
+        /* Toast from bottom on mobile */
+        right: 20px;
+        left: 20px;
+        width: auto;
+    }
+
+    .toast {
+        min-width: 0;
+        /* Allow resizing */
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+    }
+
+    .api-preview-panel {
+        font-size: 0.8rem;
     }
 }
 
