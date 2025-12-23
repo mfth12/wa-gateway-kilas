@@ -1,10 +1,10 @@
-# Multi-stage build for smaller image size
+# Build stage
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Install build dependencies for native modules (sqlite3)
-RUN apk add --no-cache --virtual .build-deps \
+RUN apk add --no-cache \
     python3 \
     make \
     g++ \
@@ -15,33 +15,35 @@ RUN apk add --no-cache --virtual .build-deps \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (production only for smaller image)
+# Install dependencies
 RUN npm install --production --network-timeout=100000
-
-# Remove build dependencies to reduce image size
-RUN apk del .build-deps
 
 # Production stage
 FROM node:20-alpine
 
-WORKDIR /app
+# Add labels
+LABEL maintainer="Dicky Ermawan S <dikywana@gmail.com>"
+LABEL description="Kilas - WhatsApp Gateway API with Baileys, Multi-session support, and Dashboard"
+LABEL version="1.0.0"
 
 # Install runtime dependencies
-RUN apk add --no-cache dumb-init sqlite-libs
+RUN apk add --no-cache wget sqlite-libs
 
-# Create non-root user
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+    adduser -S -D -H -u 1001 -G nodejs nodejs
+
+WORKDIR /app
 
 # Copy dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy application code
-COPY --chown=nodejs:nodejs . .
+# Copy application files
+COPY . .
 
-# Create necessary directories with proper permissions
-RUN mkdir -p sessions media media/uploads public/images && \
-    chown -R nodejs:nodejs sessions media public/images
+# Create directories for sessions and media with proper permissions
+RUN mkdir -p /app/sessions /app/media /app/media/uploads /app/public/images && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
@@ -51,10 +53,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/api/sessions', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/sessions || exit 1
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start application
+# Start the application
 CMD ["node", "server.js"]
