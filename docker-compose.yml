@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  kirimkan:
+  kilas:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: kirimkan-gateway
+    container_name: kilas-gateway
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
@@ -25,7 +25,7 @@ services:
       # Optional: Mount custom .env file
       # - ./.env:/app/.env:ro
     networks:
-      - kirimkan-network
+      - kilas-network
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/sessions', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -39,5 +39,5 @@ services:
         max-file: "3"
 
 networks:
-  kirimkan-network:
+  kilas-network:
     driver: bridge
