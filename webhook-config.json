@@ -5,13 +5,11 @@
       "https://go.ermalogi.com/webhook/17df815d-20e0-49e2-baa5-5d7f7425ac19"
     ],
     "retry": true,
-    "domainWhitelist": [
-      "digo.com"
-    ],
+    "domainWhitelist": [],
     "events": [
       "messages.upsert"
     ],
-    "updatedAt": "2025-12-23T04:44:34.705Z"
+    "updatedAt": "2025-12-23T07:00:07.273Z"
   },
   "finaltest": {
     "sessionId": "finaltest",

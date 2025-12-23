@@ -152,12 +152,20 @@ class WebhookSender {
 
             this.logger.info(`Webhook sent successfully for ${sessionId} (${eventType}): ${response.status}`);
 
+            // Debug: Log response data
+            console.log('[WebhookSender] Response status:', response.status);
+            console.log('[WebhookSender] Response data:', response.data);
+            console.log('[WebhookSender] Response data type:', typeof response.data);
+
             return {
                 success: true,
                 status: response.status,
                 url: config.webhookUrl,
                 event: eventType,
-                payload: payload
+                sessionId: sessionId,
+                timestamp: payload.timestamp,
+                payload: payload,
+                response: response.data // Include response body
             };
         } catch (error) {
             this.logger.error(`Webhook failed for ${sessionId} (${eventType}):`, error.message);
@@ -167,7 +175,10 @@ class WebhookSender {
                 error: error.message,
                 url: config.webhookUrl,
                 event: eventType,
-                payload: payload
+                sessionId: sessionId,
+                timestamp: payload.timestamp,
+                payload: payload,
+                response: error.response?.data || null // Include error response if available
             };
         }
     }
