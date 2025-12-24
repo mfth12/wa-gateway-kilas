@@ -282,6 +282,8 @@ window.app = {
                 list.innerHTML = '<div class="empty-state">No sessions created yet.</div>';
                 qsSelect.innerHTML = '<option value="">Select session...</option>';
                 apiSessionSelect.innerHTML = '<option value="">Select session...</option>';
+                // Update stats to show 0/0
+                this.updateStatsData([]);
                 return;
             }
 
