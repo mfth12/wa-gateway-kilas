@@ -164,7 +164,7 @@ services:
     container_name: kilas-gateway
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=change_this_password
