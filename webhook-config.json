@@ -26,5 +26,30 @@
       "messages.delete"
     ],
     "updatedAt": "2025-12-23T04:32:52.844Z"
+  },
+  "dig": {
+    "sessionId": "dig",
+    "callbackUrls": [
+      "https://go.ermalogi.com/webhook/17df815d-20e0-49e2-baa5-5d7f7425ac19"
+    ],
+    "retry": true,
+    "domainWhitelist": [],
+    "events": [
+      "connection.update",
+      "messages.upsert",
+      "messages.update",
+      "messages.delete",
+      "message-receipt.update",
+      "presence.update",
+      "chats.upsert",
+      "chats.update",
+      "chats.delete",
+      "contacts.upsert",
+      "contacts.update",
+      "groups.upsert",
+      "groups.update",
+      "group-participants.update"
+    ],
+    "updatedAt": "2025-12-24T04:27:32.549Z"
   }
 }

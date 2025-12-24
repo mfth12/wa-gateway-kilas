@@ -58,10 +58,16 @@ class BaileysHandler {
 
                 // Send webhook for connection update
                 if (this.webhookSender) {
+                    this.globalLogger.info(`[Webhook] Attempting to send connection.update for ${this.sessionId}`);
                     const result = await this.webhookSender.send(this.sessionId, 'connection.update', update);
                     if (result) {
+                        this.globalLogger.info(`[Webhook] Sent connection.update: ${result.success ? 'SUCCESS' : 'FAILED'}`);
                         this.io.emit('webhook:sent', result);
+                    } else {
+                        this.globalLogger.info(`[Webhook] No result from send (likely no config or event filtered)`);
                     }
+                } else {
+                    this.globalLogger.warn(`[Webhook] webhookSender is NULL for ${this.sessionId}`);
                 }
 
                 if (qr) {
@@ -126,6 +132,7 @@ class BaileysHandler {
 
                         // Send webhook for EACH individual message
                         if (this.webhookSender) {
+                            this.globalLogger.info(`[Webhook] Attempting to send messages.upsert for ${this.sessionId}`);
                             const result = await this.webhookSender.send(this.sessionId, 'messages.upsert', {
                                 type: m.type,
                                 messages: [msg], // Send only this single message
@@ -133,8 +140,13 @@ class BaileysHandler {
                                 chatType: chatType
                             });
                             if (result) {
+                                this.globalLogger.info(`[Webhook] Sent messages.upsert: ${result.success ? 'SUCCESS' : 'FAILED'}`);
                                 this.io.emit('webhook:sent', result);
+                            } else {
+                                this.globalLogger.info(`[Webhook] No result from send (likely no config or event filtered)`);
                             }
+                        } else {
+                            this.globalLogger.warn(`[Webhook] webhookSender is NULL for ${this.sessionId}`);
                         }
 
                         if (!msg.key.fromMe) {

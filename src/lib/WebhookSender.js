@@ -121,6 +121,7 @@ class WebhookSender {
         const config = this.webhookConfigs.get(sessionId);
 
         if (!config || !config.webhookUrl) {
+            this.logger.debug(`No webhook configured for session ${sessionId}`);
             return; // No webhook configured
         }
 
@@ -129,6 +130,7 @@ class WebhookSender {
             // If events array is not empty, only send if event is selected
             if (!config.events.includes(eventType)) {
                 // Event not selected, skip sending
+                this.logger.debug(`Event ${eventType} not in selected events for ${sessionId}. Selected: [${config.events.join(', ')}]`);
                 return;
             }
         }

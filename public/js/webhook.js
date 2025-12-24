@@ -68,33 +68,31 @@ const WebhookManager = {
                 return;
             }
 
-            const res = await window.app.apiCall(`/api/webhook/config?sessionId=${sessionId}`, 'GET');
-            if (res && res.success && res.data) {
-                const config = res.data;
-
-                // Populate callback URLs
+            const res = await window.app.apiCall(`/api/webhook/${sessionId}`, 'GET');
+            if (res && res.success) {
+                // Populate callback URLs (use webhookUrl as single URL)
                 const urlsTextarea = document.getElementById('webhookUrls');
-                if (urlsTextarea && config.callbackUrls) {
-                    urlsTextarea.value = config.callbackUrls.join('\n');
+                if (urlsTextarea && res.webhookUrl) {
+                    urlsTextarea.value = res.webhookUrl;
                 }
 
-                // Populate retry checkbox
+                // Populate retry checkbox (always true for now)
                 const retryCheckbox = document.getElementById('webhookRetry');
                 if (retryCheckbox) {
-                    retryCheckbox.checked = config.retry !== false;
+                    retryCheckbox.checked = true;
                 }
 
-                // Populate domain whitelist
+                // Populate domain whitelist (default to *)
                 const domainsInput = document.getElementById('webhookDomains');
-                if (domainsInput && config.domainWhitelist) {
-                    domainsInput.value = config.domainWhitelist.join(', ');
+                if (domainsInput) {
+                    domainsInput.value = '*';
                 }
 
                 // Populate event checkboxes
-                if (config.events && Array.isArray(config.events)) {
+                if (res.events && Array.isArray(res.events)) {
                     const checkboxes = document.querySelectorAll('.webhook-event');
                     checkboxes.forEach(cb => {
-                        cb.checked = config.events.includes(cb.value);
+                        cb.checked = res.events.includes(cb.value);
                     });
 
                     // Update Select All checkbox state
@@ -147,10 +145,7 @@ const WebhookManager = {
             }
 
             const config = {
-                sessionId,
-                callbackUrls,
-                retry,
-                domainWhitelist,
+                webhookUrl: callbackUrls[0], // Use first URL only
                 events
             };
 
@@ -159,7 +154,7 @@ const WebhookManager = {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             btn.disabled = true;
 
-            const res = await window.app.apiCall('/api/webhook/config', 'POST', config);
+            const res = await window.app.apiCall(`/api/webhook/${sessionId}`, 'POST', config);
 
             btn.innerHTML = originalHTML;
             btn.disabled = false;
