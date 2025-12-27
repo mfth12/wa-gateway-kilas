@@ -93,6 +93,13 @@ const database = new Database(logger);
 
 // Start server after database initialization
 database.init().then(() => {
+    // Wire database to webhook sender for persistence
+    webhookSender.db = database;
+
+    // Wire database to session manager for live event logging
+    // Use setDatabase to also update all existing handlers (restored before db init)
+    sessionManager.setDatabase(database);
+
     server.listen(PORT, () => {
         logger.info(`Server running on port ${PORT}`);
         logger.info(`Dashboard accessible at http://localhost:${PORT}/dashboard`);

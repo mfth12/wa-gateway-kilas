@@ -204,4 +204,56 @@ router.post('/cleanup', async (req, res) => {
     }
 });
 
+// ==================== WEBHOOK HISTORY ====================
+
+/**
+ * GET /api/logs/webhook - Get webhook history
+ */
+router.get('/webhook', async (req, res) => {
+    try {
+        const { sessionId, limit = 100, offset = 0 } = req.query;
+
+        const webhooks = await req.db.getWebhookHistory({
+            sessionId,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+
+        const total = await req.db.getWebhookHistoryCount(sessionId);
+
+        res.json({
+            success: true,
+            data: webhooks,
+            pagination: {
+                total,
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            }
+        });
+    } catch (error) {
+        req.logger.error('Error fetching webhook history:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+/**
+ * DELETE /api/logs/webhook - Clear webhook history
+ */
+router.delete('/webhook', async (req, res) => {
+    try {
+        const { sessionId } = req.query;
+
+        const result = await req.db.clearWebhookHistory(sessionId);
+
+        res.json({
+            success: true,
+            message: `Cleared ${result.deleted} webhook entries`,
+            deleted: result.deleted
+        });
+    } catch (error) {
+        req.logger.error('Error clearing webhook history:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 module.exports = router;

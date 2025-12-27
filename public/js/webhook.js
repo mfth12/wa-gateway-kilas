@@ -1,5 +1,37 @@
 // Webhook Configuration Manager
 
+// Global timezone setting (default: Asia/Jakarta)
+window.appTimezone = localStorage.getItem('app_timezone') || 'Asia/Jakarta';
+
+// Global formatTime utility function
+window.formatTime = function (dateString) {
+    if (!dateString) return '-';
+    try {
+        let date;
+        // Handle SQLite format: "YYYY-MM-DD HH:MM:SS" (stored as UTC)
+        if (typeof dateString === 'string' && !dateString.includes('T') && !dateString.includes('Z') && !dateString.includes('+')) {
+            // SQLite format without timezone - treat as UTC
+            date = new Date(dateString.replace(' ', 'T') + 'Z');
+        } else {
+            date = new Date(dateString);
+        }
+
+        return date.toLocaleString('id-ID', {
+            timeZone: window.appTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+    } catch (e) {
+        console.error('Failed to format time:', e);
+        return dateString;
+    }
+};
+
 const WebhookManager = {
     init: function () {
         this.bindEvents();
@@ -64,6 +96,7 @@ const WebhookManager = {
                 document.getElementById('webhookUrls').value = '';
                 document.getElementById('webhookRetry').checked = true;
                 document.getElementById('webhookDomains').value = '*';
+                document.getElementById('webhookTimezone').value = 'Asia/Jakarta';
                 document.querySelectorAll('.webhook-event').forEach(cb => cb.checked = false);
                 return;
             }
@@ -102,6 +135,15 @@ const WebhookManager = {
                         selectAllCheckbox.checked = allChecked;
                     }
                 }
+
+                // Populate timezone (from config or default)
+                const timezoneSelect = document.getElementById('webhookTimezone');
+                if (timezoneSelect) {
+                    const tz = res.timezone || 'Asia/Jakarta';
+                    timezoneSelect.value = tz;
+                    window.appTimezone = tz;
+                    localStorage.setItem('app_timezone', tz);
+                }
             }
         } catch (err) {
             console.error('Failed to load webhook config:', err);
@@ -114,6 +156,7 @@ const WebhookManager = {
             const urlsText = document.getElementById('webhookUrls').value;
             const retry = document.getElementById('webhookRetry').checked;
             const domainsText = document.getElementById('webhookDomains').value;
+            const timezone = document.getElementById('webhookTimezone').value;
 
             // Parse URLs (one per line)
             const callbackUrls = urlsText
@@ -146,8 +189,13 @@ const WebhookManager = {
 
             const config = {
                 webhookUrl: callbackUrls[0], // Use first URL only
-                events
+                events,
+                timezone
             };
+
+            // Save timezone globally
+            window.appTimezone = timezone;
+            localStorage.setItem('app_timezone', timezone);
 
             const btn = document.getElementById('btnSaveWebhook');
             const originalHTML = btn.innerHTML;

@@ -13,8 +13,8 @@ class WebhookLogger {
         this.storageKey = 'kirimkan_webhook_history';
         this.tableBody = document.getElementById('webhookHistoryTable');
 
-        // Load history from localStorage on init
-        this.loadFromStorage();
+        // Load history from SQLite (server) first, fallback to localStorage
+        this.loadFromServer();
         this.initPageSizeDropdown();
         this.bindEvents();
     }
@@ -132,7 +132,38 @@ class WebhookLogger {
     }
 
     /**
-     * Load history from localStorage
+     * Load history from server (SQLite)
+     */
+    async loadFromServer() {
+        try {
+            const response = await window.app.apiCall('/api/logs/webhook?limit=500');
+            if (response && response.success && response.data) {
+                // Transform server data to match expected format
+                this.history = response.data.map(item => ({
+                    timestamp: item.created_at,
+                    event: item.event_type,
+                    sessionId: item.session_id,
+                    url: item.webhook_url,
+                    success: item.success === 1,
+                    status: item.status_code,
+                    payload: item.payload ? JSON.parse(item.payload) : null,
+                    response: item.response ? JSON.parse(item.response) : null,
+                    error: item.error
+                }));
+                this.updateTable();
+                console.log(`Loaded ${this.history.length} webhook entries from server`);
+            } else {
+                // Fallback to localStorage if API fails
+                this.loadFromStorage();
+            }
+        } catch (e) {
+            console.error('Failed to load webhook history from server, falling back to localStorage:', e);
+            this.loadFromStorage();
+        }
+    }
+
+    /**
+     * Load history from localStorage (fallback)
      */
     loadFromStorage() {
         try {
@@ -185,9 +216,18 @@ class WebhookLogger {
     }
 
     /**
-     * Clear all history
+     * Clear all history (both local and server)
      */
-    clearHistory() {
+    async clearHistory() {
+        // Clear from server (SQLite)
+        try {
+            await window.app.apiCall('/api/logs/webhook', 'DELETE');
+            console.log('Cleared webhook history from server');
+        } catch (e) {
+            console.error('Failed to clear webhook history from server:', e);
+        }
+
+        // Clear local
         this.history = [];
         localStorage.removeItem(this.storageKey);
         this.updateTable();
@@ -278,17 +318,9 @@ class WebhookLogger {
         statusCell.appendChild(statusBadge);
         row.appendChild(statusCell);
 
-        // Time (date + time)
+        // Time (date + time) - use global timezone setting
         const timeCell = document.createElement('td');
-        const timestamp = new Date(data.timestamp || Date.now());
-        const timeStr = timestamp.toLocaleString('id-ID', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
+        const timeStr = window.formatTime ? window.formatTime(data.timestamp) : data.timestamp;
         timeCell.innerHTML = timeStr;
         row.appendChild(timeCell);
 

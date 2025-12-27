@@ -6,11 +6,12 @@ const QRCode = require('qrcode');
 const MediaHandler = require('./MediaHandler');
 
 class BaileysHandler {
-    constructor(sessionId, io, logger, webhookSender = null) {
+    constructor(sessionId, io, logger, webhookSender = null, db = null) {
         this.sessionId = sessionId;
         this.io = io;
         this.globalLogger = logger;
         this.webhookSender = webhookSender;
+        this.db = db; // Database instance for event logging
         this.status = 'disconnected';
         this.socket = null;
         this.user = null;
@@ -27,6 +28,29 @@ class BaileysHandler {
 
         // Initialize Media Handler
         this.mediaHandler = new MediaHandler(this.globalLogger);
+    }
+
+    /**
+     * Log event to both WebSocket (for real-time UI) and SQLite (for persistence)
+     */
+    logEventToDb(type, message, eventData = null) {
+        // Emit to WebSocket for real-time UI update
+        this.io.emit('event:log', {
+            type,
+            sessionId: this.sessionId,
+            text: message,
+            timestamp: new Date()
+        });
+
+        // Save to SQLite for persistence (if database available)
+        if (this.db) {
+            this.db.logEvent({
+                sessionId: this.sessionId,
+                eventType: type,
+                message: message,
+                eventData: eventData
+            }).catch(err => this.globalLogger.error('Failed to log event to DB:', err));
+        }
     }
 
     async start() {
@@ -75,9 +99,13 @@ class BaileysHandler {
                     // Generate QR image
                     try {
                         const qrImage = await QRCode.toDataURL(qr);
+                        // Emit to subscribed room
                         this.io.to(`session:${this.sessionId}`).emit('session:qr', { sessionId: this.sessionId, qr: qrImage });
+                        // Also emit globally for reliability (dashboard may not have subscribed yet)
+                        this.io.emit('session:qr', { sessionId: this.sessionId, qr: qrImage });
                         // Also broadcast generally for dashboard
                         this.io.emit('session:update', { id: this.sessionId, status: 'scan_qr' });
+                        this.globalLogger.info(`QR code emitted for session ${this.sessionId}`);
                     } catch (err) {
                         this.globalLogger.error(`Error generating QR: ${err}`);
                     }
@@ -104,6 +132,9 @@ class BaileysHandler {
                         this.updateStatus('failed');
                         this.retryCount = 0; // Reset for manual retry
                     } else {
+                        // Logged out - clear session folder so new QR can be generated
+                        this.globalLogger.info(`Session ${this.sessionId} logged out, clearing session folder for fresh QR`);
+                        this.clearSessionFolder();
                         this.updateStatus('logged_out');
                         this.retryCount = 0;
                     }
@@ -160,16 +191,11 @@ class BaileysHandler {
                                 media: mediaPath
                             });
 
-                            // Global event for dashboard log
+                            // Global event for dashboard log - save to DB too
                             const from = msg.key.remoteJid.split('@')[0];
                             const type = msg.message ? Object.keys(msg.message)[0] : 'unknown';
 
-                            this.io.emit('event:log', {
-                                type: 'message',
-                                sessionId: this.sessionId,
-                                text: `Msg from ${from} (${type}) ${mediaPath ? '[MEDIA SAVED]' : ''}`,
-                                timestamp: new Date()
-                            });
+                            this.logEventToDb('message', `Msg from ${from} (${type}) ${mediaPath ? '[MEDIA SAVED]' : ''}`, { from, type, mediaPath });
                         }
                     }
                 }
@@ -323,13 +349,22 @@ class BaileysHandler {
     updateStatus(status) {
         this.status = status;
         this.io.emit('session:status', { sessionId: this.sessionId, status });
-        // Also add to event log
-        this.io.emit('event:log', {
-            type: 'connection',
-            sessionId: this.sessionId,
-            text: `Status changed to ${status}`,
-            timestamp: new Date()
-        });
+        // Also add to event log (with DB persistence)
+        this.logEventToDb('connection', `Status changed to ${status}`, { status });
+    }
+
+    /**
+     * Clear session folder (delete credentials) to allow fresh QR code generation
+     */
+    clearSessionFolder() {
+        try {
+            if (fs.existsSync(this.sessionDir)) {
+                fs.rmSync(this.sessionDir, { recursive: true, force: true });
+                this.globalLogger.info(`Session folder cleared: ${this.sessionDir}`);
+            }
+        } catch (err) {
+            this.globalLogger.error(`Failed to clear session folder: ${err.message}`);
+        }
     }
 
     async logout() {

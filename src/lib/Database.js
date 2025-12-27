@@ -92,6 +92,25 @@ class Database {
             `CREATE INDEX IF NOT EXISTS idx_events_created ON live_events(created_at)`,
             `CREATE INDEX IF NOT EXISTS idx_events_type ON live_events(event_type)`,
 
+            // Webhook History Table
+            `CREATE TABLE IF NOT EXISTS webhook_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                webhook_url TEXT NOT NULL,
+                success INTEGER DEFAULT 0,
+                status_code INTEGER,
+                payload TEXT,
+                response TEXT,
+                error TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // Indexes for webhook_history
+            `CREATE INDEX IF NOT EXISTS idx_webhook_session ON webhook_history(session_id)`,
+            `CREATE INDEX IF NOT EXISTS idx_webhook_created ON webhook_history(created_at)`,
+            `CREATE INDEX IF NOT EXISTS idx_webhook_success ON webhook_history(success)`,
+
             // Settings Table
             `CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
@@ -382,6 +401,118 @@ class Database {
      */
     clearLiveEvents(sessionId = null) {
         let sql = `DELETE FROM live_events`;
+        const params = [];
+
+        if (sessionId) {
+            sql += ` WHERE session_id = ?`;
+            params.push(sessionId);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.db.run(sql, params, function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ deleted: this.changes });
+                }
+            });
+        });
+    }
+
+    // ==================== WEBHOOK HISTORY ====================
+
+    /**
+     * Log webhook send result
+     */
+    logWebhook(data) {
+        const { sessionId, eventType, webhookUrl, success, statusCode, payload, response, error } = data;
+
+        const sql = `INSERT INTO webhook_history (session_id, event_type, webhook_url, success, status_code, payload, response, error)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+        return new Promise((resolve, reject) => {
+            this.db.run(sql, [
+                sessionId,
+                eventType,
+                webhookUrl,
+                success ? 1 : 0,
+                statusCode || null,
+                payload ? JSON.stringify(payload) : null,
+                response ? JSON.stringify(response) : null,
+                error || null
+            ], function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ id: this.lastID });
+                }
+            });
+        });
+    }
+
+    /**
+     * Get webhook history with pagination
+     */
+    getWebhookHistory(options = {}) {
+        const {
+            sessionId,
+            limit = 100,
+            offset = 0,
+            orderBy = 'created_at',
+            order = 'DESC'
+        } = options;
+
+        let sql = `SELECT * FROM webhook_history`;
+        const params = [];
+
+        if (sessionId) {
+            sql += ` WHERE session_id = ?`;
+            params.push(sessionId);
+        }
+
+        sql += ` ORDER BY ${orderBy} ${order}`;
+        sql += ` LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        return new Promise((resolve, reject) => {
+            this.db.all(sql, params, (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    }
+
+    /**
+     * Get webhook history count
+     */
+    getWebhookHistoryCount(sessionId = null) {
+        let sql = `SELECT COUNT(*) as count FROM webhook_history`;
+        const params = [];
+
+        if (sessionId) {
+            sql += ` WHERE session_id = ?`;
+            params.push(sessionId);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.db.get(sql, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row.count);
+                }
+            });
+        });
+    }
+
+    /**
+     * Clear webhook history
+     */
+    clearWebhookHistory(sessionId = null) {
+        let sql = `DELETE FROM webhook_history`;
         const params = [];
 
         if (sessionId) {

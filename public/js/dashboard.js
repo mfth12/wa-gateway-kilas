@@ -523,12 +523,40 @@ window.app = {
         sessionStorage.setItem('kirimkan_events', JSON.stringify(events));
     },
 
-    loadEventsFromStorage: function () {
+    loadEventsFromStorage: async function () {
+        const log = document.getElementById('monitorEventLog');
+
+        // Try to load from SQLite API first
+        try {
+            const response = await this.apiCall('/api/logs/events?limit=100');
+            if (response && response.success && response.data && response.data.length > 0) {
+                // Clear existing content
+                log.innerHTML = '';
+
+                // Render events from database
+                response.data.forEach(event => {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry';
+                    const time = window.formatTime ? window.formatTime(event.created_at) : event.created_at;
+                    entry.innerHTML = `
+                        <span class="log-time">${time}</span>
+                        <span class="log-type type-${event.event_type}">${event.event_type}</span>
+                        <span class="log-message"><strong>[${event.session_id}]</strong> ${event.message}</span>
+                    `;
+                    log.appendChild(entry);
+                });
+                console.log(`Loaded ${response.data.length} events from server`);
+                return;
+            }
+        } catch (e) {
+            console.error('Failed to load events from server:', e);
+        }
+
+        // Fallback to sessionStorage
         const stored = sessionStorage.getItem('kirimkan_events');
         if (stored) {
             try {
                 const events = JSON.parse(stored);
-                const log = document.getElementById('monitorEventLog');
                 log.innerHTML = events.join('');
             } catch (e) {
                 console.error('Failed to load events from storage:', e);

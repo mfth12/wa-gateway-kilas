@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 class WebhookSender {
-    constructor(logger) {
+    constructor(logger, db = null) {
         this.logger = logger;
+        this.db = db; // Database instance for persistence
         this.webhooks = new Map(); // sessionId -> webhookUrl (legacy)
         this.webhookConfigs = new Map(); // sessionId -> { webhookUrl, events: [] }
 
@@ -88,17 +89,18 @@ class WebhookSender {
     }
 
     /**
-     * Set webhook configuration (URL + events)
+     * Set webhook configuration (URL + events + timezone)
      */
     setWebhookConfig(sessionId, config) {
         if (config && config.webhookUrl) {
             this.webhookConfigs.set(sessionId, {
                 webhookUrl: config.webhookUrl,
-                events: config.events || []
+                events: config.events || [],
+                timezone: config.timezone || 'Asia/Jakarta'
             });
             // Also set legacy webhook for backward compatibility
             this.webhooks.set(sessionId, config.webhookUrl);
-            this.logger.info(`Webhook config set for ${sessionId}: ${config.webhookUrl} with ${config.events?.length || 0} events`);
+            this.logger.info(`Webhook config set for ${sessionId}: ${config.webhookUrl} with ${config.events?.length || 0} events, timezone: ${config.timezone || 'Asia/Jakarta'}`);
         } else {
             this.webhookConfigs.delete(sessionId);
             this.webhooks.delete(sessionId);
@@ -159,7 +161,7 @@ class WebhookSender {
             console.log('[WebhookSender] Response data:', response.data);
             console.log('[WebhookSender] Response data type:', typeof response.data);
 
-            return {
+            const result = {
                 success: true,
                 status: response.status,
                 url: config.webhookUrl,
@@ -169,10 +171,26 @@ class WebhookSender {
                 payload: payload,
                 response: response.data // Include response body
             };
+
+            // Log to SQLite if database is available
+            if (this.db) {
+                this.db.logWebhook({
+                    sessionId: sessionId,
+                    eventType: eventType,
+                    webhookUrl: config.webhookUrl,
+                    success: true,
+                    statusCode: response.status,
+                    payload: payload,
+                    response: response.data,
+                    error: null
+                }).catch(err => this.logger.error('Failed to log webhook:', err));
+            }
+
+            return result;
         } catch (error) {
             this.logger.error(`Webhook failed for ${sessionId} (${eventType}):`, error.message);
 
-            return {
+            const result = {
                 success: false,
                 error: error.message,
                 url: config.webhookUrl,
@@ -182,6 +200,22 @@ class WebhookSender {
                 payload: payload,
                 response: error.response?.data || null // Include error response if available
             };
+
+            // Log to SQLite if database is available
+            if (this.db) {
+                this.db.logWebhook({
+                    sessionId: sessionId,
+                    eventType: eventType,
+                    webhookUrl: config.webhookUrl,
+                    success: false,
+                    statusCode: error.response?.status || null,
+                    payload: payload,
+                    response: error.response?.data || null,
+                    error: error.message
+                }).catch(err => this.logger.error('Failed to log webhook:', err));
+            }
+
+            return result;
         }
     }
 

@@ -3,10 +3,11 @@ const path = require('path');
 const BaileysHandler = require('./BaileysHandler');
 
 class SessionManager {
-    constructor(io, logger, webhookSender = null) {
+    constructor(io, logger, webhookSender = null, db = null) {
         this.io = io;
         this.logger = logger;
         this.webhookSender = webhookSender;
+        this.db = db; // Database instance for event logging
         this.sessions = new Map(); // Store active BaileysHandler instances
         this.sessionDir = process.env.SESSION_DIR || './sessions';
         this.sessionsFile = path.join(this.sessionDir, 'sessions.json');
@@ -47,6 +48,19 @@ class SessionManager {
         fs.writeFileSync(this.sessionsFile, JSON.stringify(sessionIds, null, 2));
     }
 
+    /**
+     * Set database for SessionManager and all existing handlers
+     * Called after database is initialized in server.js
+     */
+    setDatabase(db) {
+        this.db = db;
+        // Update all existing handlers
+        for (const [sessionId, handler] of this.sessions) {
+            handler.db = db;
+            this.logger.info(`Database wired for session: ${sessionId}`);
+        }
+    }
+
     async createSession(sessionId, startImmediately = true) {
         if (this.sessions.has(sessionId)) {
             this.logger.info(`Session ${sessionId} already exists, restarting...`);
@@ -55,8 +69,8 @@ class SessionManager {
             this.sessions.delete(sessionId);
         }
 
-        // Create new session
-        const handler = new BaileysHandler(sessionId, this.io, this.logger, this.webhookSender);
+        // Create new session with database for event logging
+        const handler = new BaileysHandler(sessionId, this.io, this.logger, this.webhookSender, this.db);
         this.sessions.set(sessionId, handler);
 
         this.saveSessions();
