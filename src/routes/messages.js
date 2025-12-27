@@ -123,8 +123,12 @@ router.post('/send-image', upload.single('image'), async (req, res) => {
             // Support both data URL and raw base64
             const base64Data = req.body.image.replace(/^data:image\/\w+;base64,/, '');
             imageSource = Buffer.from(base64Data, 'base64');
+        }
+        // Check if URL provided (Baileys native support)
+        else if (req.body.imageUrl) {
+            imageSource = { url: req.body.imageUrl };
         } else {
-            return res.status(400).json({ success: false, message: 'No image provided (file or base64)' });
+            return res.status(400).json({ success: false, message: 'No image provided (file, base64, or imageUrl)' });
         }
 
         const jid = chatId.includes('@') ? chatId : `${chatId}@s.whatsapp.net`;
@@ -193,13 +197,13 @@ router.post('/send-document', upload.single('document'), async (req, res) => {
             return res.status(404).json({ success: false, message: 'Session not found or not connected' });
         }
 
-        let documentBuffer;
+        let documentSource;
         let docFilename;
         let docMimetype;
 
         // Check if file was uploaded
         if (req.file) {
-            documentBuffer = fs.readFileSync(req.file.path); // Read file from disk into buffer
+            documentSource = fs.readFileSync(req.file.path); // Read file from disk into buffer
             docFilename = req.file.originalname;
             docMimetype = req.file.mimetype;
         }
@@ -207,17 +211,23 @@ router.post('/send-document', upload.single('document'), async (req, res) => {
         else if (req.body.document) {
             // Support data URL or raw base64
             const base64Data = req.body.document.replace(/^data:.+;base64,/, '');
-            documentBuffer = Buffer.from(base64Data, 'base64');
+            documentSource = Buffer.from(base64Data, 'base64');
             docFilename = filename || 'document.pdf'; // Use provided filename or default
             docMimetype = mimetype || 'application/pdf'; // Use provided mimetype or default
+        }
+        // Check if URL provided (Baileys native support)
+        else if (req.body.documentUrl) {
+            documentSource = { url: req.body.documentUrl };
+            docFilename = filename || 'document.pdf';
+            docMimetype = mimetype || 'application/pdf';
         } else {
-            return res.status(400).json({ success: false, message: 'No document provided (file or base64)' });
+            return res.status(400).json({ success: false, message: 'No document provided (file, base64, or documentUrl)' });
         }
 
         const jid = chatId.includes('@') ? chatId : `${chatId}@s.whatsapp.net`;
 
         const messageContent = {
-            document: documentBuffer,
+            document: documentSource,
             mimetype: docMimetype,
             fileName: docFilename
         };

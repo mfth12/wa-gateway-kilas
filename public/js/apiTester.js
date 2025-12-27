@@ -26,6 +26,28 @@ const endpoints = {
             "caption": "Document caption (optional)"
         }
     },
+    'POST /api/messages/send-image (URL)': {
+        method: 'POST',
+        url: '/api/messages/send-image',
+        body: {
+            "sessionId": "",
+            "chatId": "628123456789",
+            "imageUrl": "https://example.com/image.jpg",
+            "caption": "Image from URL"
+        }
+    },
+    'POST /api/messages/send-document (URL)': {
+        method: 'POST',
+        url: '/api/messages/send-document',
+        body: {
+            "sessionId": "",
+            "chatId": "628123456789",
+            "documentUrl": "https://example.com/document.pdf",
+            "filename": "document.pdf",
+            "mimetype": "application/pdf",
+            "caption": "Document from URL"
+        }
+    },
     'POST /api/messages/send-location': {
         method: 'POST',
         body: {
@@ -235,9 +257,11 @@ document.getElementById('btnSendRequest').addEventListener('click', async () => 
     const selected = select.value;
     if (!selected) return Toast.warning('Please select an endpoint');
 
-    // Parse URL and Method
-    const [method, urlTemplate] = selected.split(' ');
-    let url = urlTemplate;
+    const ep = endpoints[selected];
+
+    // Parse URL and Method - support custom url property
+    const [method] = selected.split(' ');
+    let url = ep.url || selected.split(' ').slice(1).join(' ');
 
     // Parse Body
     let body = null;
@@ -280,7 +304,6 @@ document.getElementById('btnSendRequest').addEventListener('click', async () => 
         btn.disabled = true;
 
         let res;
-        const ep = endpoints[selected];
 
         // Check if file upload or base64 is needed
         if (ep && ep.supportsFile) {

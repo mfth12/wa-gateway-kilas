@@ -50,7 +50,7 @@
 - ✅ **Contact Management** - Fetch and manage contacts
 - ✅ **Status Updates** - Post WhatsApp status programmatically
 - ✅ **Webhook Support** - Receive real-time events with selective filtering
-- ✅ **File Upload & Base64** - Flexible media handling
+- ✅ **File Upload, Base64 & URL** - Flexible media handling (3 methods)
 
 ### 🛡️ Enterprise Ready
 - 🔒 **Optional API Key Authentication** - Secure your endpoints
@@ -745,6 +745,36 @@ print_r(json_decode($response, true));
 ?>
 ```
 
+**Method 3: URL (Baileys Native)**
+
+Send image directly from URL - Baileys downloads and sends automatically.
+
+**PHP Example:**
+```php
+<?php
+$data = [
+    'sessionId' => 'MySession',
+    'chatId' => '628123456789',
+    'imageUrl' => 'https://example.com/image.jpg',
+    'caption' => 'Image from URL'
+];
+
+$ch = curl_init('http://localhost:3001/api/messages/send-image');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'x-api-key: your_secret_api_key'
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+print_r(json_decode($response, true));
+?>
+```
+
 ---
 
 #### Send Document
@@ -797,6 +827,38 @@ $data = [
 ];
 
 $ch = curl_init('http://localhost:3000/api/messages/send-document');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Content-Type: application/json',
+    'x-api-key: your_secret_api_key'
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+print_r(json_decode($response, true));
+?>
+```
+
+**Method 3: URL (Baileys Native)**
+
+Send document directly from URL - Baileys downloads and sends automatically.
+
+**PHP Example:**
+```php
+<?php
+$data = [
+    'sessionId' => 'MySession',
+    'chatId' => '628123456789',
+    'documentUrl' => 'https://example.com/document.pdf',
+    'filename' => 'invoice.pdf',
+    'mimetype' => 'application/pdf',
+    'caption' => 'Document from URL'
+];
+
+$ch = curl_init('http://localhost:3001/api/messages/send-document');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
