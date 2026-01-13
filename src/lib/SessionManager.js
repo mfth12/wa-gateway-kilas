@@ -95,7 +95,8 @@ class SessionManager {
             result.push({
                 id,
                 status: handler.status, // connecting, connected, disconnected
-                user: handler.user // Info about the connected user if available
+                user: handler.user, // Info about the connected user if available
+                connectedAt: handler.connectedAt // Timestamp when session connected
             });
         }
         return result;

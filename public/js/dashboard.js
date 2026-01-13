@@ -1,3 +1,41 @@
+// Utility: Format uptime duration with tiered display
+function formatUptime(connectedAt) {
+    if (!connectedAt) return '-';
+
+    const now = new Date();
+    const connected = new Date(connectedAt);
+    const diffMs = now - connected;
+
+    if (diffMs < 0) return '-';
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const months = Math.floor(days / 30);
+
+    // Tiered display based on duration
+    if (months > 0) {
+        // 1mo 5h format
+        const remainingHours = hours % 24;
+        return `${months}mo ${remainingHours}h`;
+    } else if (days > 0) {
+        // 1d 5h format
+        const remainingHours = hours % 24;
+        return `${days}d ${remainingHours}h`;
+    } else if (hours > 0) {
+        // 1h 20m format
+        const remainingMinutes = minutes % 60;
+        return `${hours}h ${remainingMinutes}m`;
+    } else if (minutes > 0) {
+        // 5m format
+        return `${minutes}m`;
+    } else {
+        // Just now
+        return 'Just now';
+    }
+}
+
 // Main Dashboard Logic
 window.app = {
     apiKey: localStorage.getItem('apiKey'),
@@ -375,7 +413,7 @@ window.app = {
                         </div>
                         <div class="device-status-row" style="border: none;">
                             <span>Uptime</span>
-                            <span class="device-uptime">-</span>
+                            <span class="device-uptime">${formatUptime(session.connectedAt)}</span>
                         </div>
                         <div class="device-actions">
                             <button class="btn btn-${session.status === 'connected' ? 'secondary' : 'success'} btn-sm" onclick="window.app.showQR('${session.id}')" style="flex: 1;">

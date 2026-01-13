@@ -19,6 +19,7 @@ class BaileysHandler {
         this.retryCount = 0;
         this.maxRetries = 5;
         this.isReconnecting = false;
+        this.connectedAt = null; // Track when session connected for uptime
 
         // Setup session directory
         this.sessionDir = path.join(process.env.SESSION_DIR || './sessions', sessionId);
@@ -141,6 +142,7 @@ class BaileysHandler {
                 } else if (connection === 'open') {
                     this.isReconnecting = false;
                     this.retryCount = 0; // Reset retry counter on successful connection
+                    this.connectedAt = new Date(); // Set connection timestamp for uptime
                     this.globalLogger.info(`Session ${this.sessionId} connected`);
                     this.updateStatus('connected');
                     this.user = this.socket.user;
