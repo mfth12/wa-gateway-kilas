@@ -3,9 +3,9 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main
+      - master
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
@@ -38,5 +38,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            dickyermawan/kilas:latest
-            dickyermawan/kilas:${{ github.ref_name }}
+            mfth12/wa-gateway-kilas:latest
+            mfth12/wa-gateway-kilas:${{ github.ref_name }}
